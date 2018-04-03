@@ -56,9 +56,9 @@ tGKI_CB gki_cb;
 #define LINUX_SEC (1000 / TICKS_PER_SEC)
 // #define GKI_TICK_TIMER_DEBUG
 
-#define LOCK(m) pthread_mutex_lock(&m)
-#define UNLOCK(m) pthread_mutex_unlock(&m)
-#define INIT(m) pthread_mutex_init(&m, NULL)
+#define LOCK(m) pthread_mutex_lock(&(m))
+#define UNLOCK(m) pthread_mutex_unlock(&(m))
+#define INIT(m) pthread_mutex_init(&(m), NULL)
 
 /* this kind of mutex go into tGKI_OS control block!!!! */
 /* static pthread_mutex_t GKI_sched_mutex; */
@@ -69,12 +69,6 @@ static pthread_cond_t   gki_timer_update_cond;
 */
 #ifdef NO_GKI_RUN_RETURN
 static pthread_t timer_thread_id = 0;
-#endif
-
-/* For Android */
-
-#ifndef GKI_SHUTDOWN_EVT
-#define GKI_SHUTDOWN_EVT APPL_EVT_7
 #endif
 
 typedef struct {
@@ -109,10 +103,10 @@ void gki_task_entry(uintptr_t params) {
   /* Call the actual thread entry point */
   (p_pthread_info->task_entry)(p_pthread_info->params);
 
-  GKI_TRACE_1("gki_task task_id=%i terminating", p_pthread_info->task_id);
+  GKI_TRACE_ERROR_1("gki_task task_id=%i terminating", p_pthread_info->task_id);
   gki_cb.os.thread_id[p_pthread_info->task_id] = 0;
 
-  pthread_exit(0); /* GKI tasks have no return value */
+  return;
 }
 /* end android */
 
@@ -449,8 +443,8 @@ void timer_thread(signed long id) {
 
     GKI_timer_update(1);
   }
-  GKI_TRACE_1("%s exit", __func__);
-  pthread_exit(NULL);
+  GKI_TRACE_ERROR_1("%s exit", __func__);
+  return;
 }
 #endif
 
@@ -620,8 +614,9 @@ uint16_t GKI_wait(uint16_t flag, uint32_t timeout) {
   rtask = GKI_get_taskid();
   GKI_TRACE_3("GKI_wait %d %x %d", rtask, flag, timeout);
   if (rtask >= GKI_MAX_TASKS) {
-    pthread_exit(NULL);
-    return 0;
+    GKI_TRACE_ERROR_3("%s() Exiting thread; rtask %d >= %d", __func__, rtask,
+                      GKI_MAX_TASKS);
+    return EVENT_MASK(GKI_SHUTDOWN_EVT);
   }
 
   gki_pthread_info_t* p_pthread_info = &gki_pthread_info[rtask];
@@ -707,10 +702,9 @@ uint16_t GKI_wait(uint16_t flag, uint32_t timeout) {
       /* unlock thread_evt_mutex as pthread_cond_wait() does auto lock when cond
        * is met */
       pthread_mutex_unlock(&gki_cb.os.thread_evt_mutex[rtask]);
-      GKI_TRACE_1("GKI TASK_DEAD received. exit thread %d...", rtask);
+      GKI_TRACE_ERROR_1("GKI TASK_DEAD received. exit thread %d...", rtask);
 
       gki_cb.os.thread_id[rtask] = 0;
-      pthread_exit(NULL);
       return (EVENT_MASK(GKI_SHUTDOWN_EVT));
     }
   }

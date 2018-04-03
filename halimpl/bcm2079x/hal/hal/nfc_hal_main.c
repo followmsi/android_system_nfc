@@ -596,7 +596,9 @@ uint32_t nfc_hal_main_task(uint32_t param) {
   /* Main loop */
   while (true) {
     event = GKI_wait(0xFFFF, 0);
-
+    if (event == EVENT_MASK(GKI_SHUTDOWN_EVT)) {
+      break;
+    }
     /* Handle NFC_HAL_TASK_EVT_INITIALIZE (for initializing NCI transport) */
     if (event & NFC_HAL_TASK_EVT_INITIALIZE) {
       HAL_TRACE_DEBUG0(
@@ -650,7 +652,7 @@ uint32_t nfc_hal_main_task(uint32_t param) {
             p += 5;
             STREAM_TO_UINT8(num_interfaces, p);
             p += (num_interfaces + 3);
-            nfc_hal_cb.ncit_cb.nci_ctrl_size = *p;
+            nfc_hal_cb.ncit_cb.nci_ctrl_size = 255;
 
             /* start post initialization */
             nfc_hal_cb.dev_cb.next_dm_config = NFC_HAL_DM_CONFIG_LPTD;

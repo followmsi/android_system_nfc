@@ -35,6 +35,17 @@ ifeq ($(PN553),4)
 D_CFLAGS += -DPN553=4
 endif
 
+#### Select the CHIP ####
+ifneq ($(filter pn547 nq110 nq120,$(BOARD_NFC_CHIPSET)),)
+NXP_CHIP_TYPE := $(PN547C2)
+else ifneq ($(filter pn548 nq210 nq220,$(BOARD_NFC_CHIPSET)),)
+NXP_CHIP_TYPE := $(PN548C2)
+else ifeq ($(BOARD_NFC_CHIPSET),pn551)
+NXP_CHIP_TYPE := $(PN551)
+else ifeq ($(BOARD_NFC_CHIPSET),pn553)
+NXP_CHIP_TYPE := $(PN553)
+endif
+
 ifeq ($(NXP_CHIP_TYPE),$(PN547C2))
 D_CFLAGS += -DNFC_NXP_CHIP_TYPE=PN547C2
 else ifeq ($(NXP_CHIP_TYPE),$(PN548C2))
@@ -47,9 +58,15 @@ else
 D_CFLAGS += -DNFC_NXP_CHIP_TYPE=PN553
 endif
 
+ifneq ($(BOARD_NFC_HAL_SUFFIX),)
+    HAL_SUFFIX := $(BOARD_NFC_HAL_SUFFIX)
+else
+    HAL_SUFFIX := $(TARGET_DEVICE)
+endif
+
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
-LOCAL_MODULE := nfc_nci.$(TARGET_DEVICE)
+LOCAL_MODULE := nfc_nci.$(HAL_SUFFIX)
 LOCAL_PROPRIETARY_MODULE := true
 LOCAL_MODULE_RELATIVE_PATH := hw
 LOCAL_SRC_FILES := \
@@ -83,6 +100,6 @@ LOCAL_CFLAGS += -DNFC_NXP_HFO_SETTINGS=FALSE
 
 
 #
-# nfc_nci.$(TARGET_DEVICE)
+# nfc_nci.$(HAL_SUFFIX)
 #
 include $(BUILD_SHARED_LIBRARY)
